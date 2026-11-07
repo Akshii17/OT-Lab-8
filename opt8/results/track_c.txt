@@ -1,0 +1,27 @@
+== C1. QAOA on the Track B Max-Cut graph (exact simulation, not hardware) ==
+optimal cut = 10, random-guess expected cut = 6.00
+p=1: expected cut=8.309  approximation ratio=0.831
+p=2: expected cut=9.248  approximation ratio=0.925
+p=3: expected cut=9.654  approximation ratio=0.965
+
+== C2. Finite shots and a simple noise model on the p=3 QAOA ==
+shots=    10  estimate=9.617 +- 0.272  (exact 9.654)
+shots=   100  estimate=9.679 +- 0.057  (exact 9.654)
+shots=  1000  estimate=9.654 +- 0.022  (exact 9.654)
+shots= 10000  estimate=9.654 +- 0.007  (exact 9.654)
+gate error 0.000 -> expected cut 9.654
+gate error 0.001 -> expected cut 9.441
+gate error 0.005 -> expected cut 8.705
+gate error 0.020 -> expected cut 7.087
+
+== C3. VQE (2 qubits). exact ground energy = -1.4142 ==
+parameter-shift GD         final energy -1.4141 +- 0.0001  (8 circuit evals/step)
+SPSA                       final energy -1.4022 +- 0.0228  (2 circuit evals/step)
+quantum natural gradient   final energy -1.4142 +- 0.0000  (8 circuit evals/step)
+
+== C4. Barren plateau: variance of a parameter-shift gradient, global cost, random RY+CZ circuit ==
+qubits= 2  Var[grad]=5.83e-02
+qubits= 4  Var[grad]=5.67e-03
+qubits= 6  Var[grad]=4.85e-04
+qubits= 8  Var[grad]=6.67e-05
+qubits=10  Var[grad]=9.11e-06

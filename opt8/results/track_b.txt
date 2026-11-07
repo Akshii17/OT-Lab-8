@@ -1,0 +1,17 @@
+== B1. 0/1 knapsack (feature/project selection), n=18, capacity=150 ==
+Greedy (ratio)         value=661  time=1.26 ms
+Dynamic programming    value=690  time=0.77 ms
+ILP (scipy milp)       value=690  time=22.93 ms
+Branch-and-Bound       value=690  time=0.21 ms
+Brute force (check)    value=690  time=982.52 ms
+B&B nodes explored: 73 of 524287 possible
+
+== B2. Max-Cut as QUBO / Ising ==
+QUBO optimum energy=-10.0  -> cut=10.0; direct brute-force cut=10  (match: True)
+Ising energy of the optimum = -10.0 (should equal QUBO energy -10.0)
+
+== B3. Feature selection as QUBO with a penalty for 'choose exactly k' ==
+selected features [2, 5, 6, 7], count=4 (constraint k=4 satisfied: True)
+
+== B4. Classical baseline for Track C: simulated annealing on the Max-Cut QUBO ==
+SA best cut over 10 seeds: mean=10.00 min=10.0 max=10.0 (optimum 10)

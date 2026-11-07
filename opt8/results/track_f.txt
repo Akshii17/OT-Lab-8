@@ -1,0 +1,28 @@
+== F1. Unoptimized program ==
+IR instructions=27  est. cycles=41  output=[39, 144, 32]
+
+== F2. Each pass alone, then pass-ordering as an optimization problem ==
+const     alone: instrs=27 cycles= 35 output_ok=True
+strength  alone: instrs=27 cycles= 35 output_ok=True
+cse       alone: instrs=27 cycles= 41 output_ok=True
+dce       alone: instrs=24 cycles= 36 output_ok=True
+exhaustive search over 24 orders: best ('cse', 'const', 'strength', 'dce') -> cycles=13 instrs=9; worst ('strength', 'cse', 'dce', 'const') -> cycles=28
+greedy (apply whichever pass helps most next): ['const', 'dce', 'strength', 'cse'] -> cycles=15
+
+== F3. Before/after measurement ==
+                instrs  cycles   run time (20k runs)
+unoptimized         27      41              0.126 s
+optimized            9      13              0.046 s
+extra compile time for the passes: 0.08 ms;  same output: True
+correctness: optimized and unoptimized programs give identical output on 4 different inputs
+
+optimized IR:
+shl t3 x 1
+add t4 x y
+mul t6 t4 t4
+mul t8 t4 3
+add t11 t3 t8
+sub t14 t11 11
+print None t14 None
+print None t6 None
+print None 32 None

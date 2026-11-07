@@ -1,0 +1,11 @@
+== G1. Scheduler simulation (time units = ticks). Turnaround of every job, high-priority jobs listed first ==
+W1 CPU-bound, 2 high + 2 low priority
+   round robin  turnarounds=[797, 798, 799, 800]  mean=798.5  mean of highest-priority jobs=797.5  makespan=800
+   priority     turnarounds=[399, 400, 799, 800]  mean=599.5  mean of highest-priority jobs=399.5  makespan=800
+W2 twelve short equal jobs
+   round robin  turnarounds=[229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240]  mean=234.5  mean of highest-priority jobs=234.5  makespan=240
+   priority     turnarounds=[229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240]  mean=234.5  mean of highest-priority jobs=234.5  makespan=240
+W3 CPU + sleepy mix
+   round robin  turnarounds=[571, 603, 573, 604]  mean=587.8  mean of highest-priority jobs=587.0  makespan=604
+   priority     turnarounds=[259, 320, 560, 616]  mean=438.8  mean of highest-priority jobs=289.5  makespan=616
+Reading: priority scheduling cuts turnaround for the important jobs (W1, W3) at the cost of the low-priority ones; with equal priorities (W2) it behaves like round robin.

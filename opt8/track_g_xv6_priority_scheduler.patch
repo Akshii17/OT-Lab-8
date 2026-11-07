@@ -1,0 +1,176 @@
+diff --git a/Makefile b/Makefile
+index a26f3db..ea1120c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -132,6 +132,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
+ 
+ UPROGS=\
+ 	$U/_cat\
++	$U/_schedbench\
+ 	$U/_echo\
+ 	$U/_forktest\
+ 	$U/_grep\
+diff --git a/kernel/proc.c b/kernel/proc.c
+index 31f23a3..ff6540b 100644
+--- a/kernel/proc.c
++++ b/kernel/proc.c
+@@ -124,6 +124,8 @@ allocproc(void)
+ found:
+   p->pid = allocpid();
+   p->state = USED;
++  p->priority = 10;
++  p->last_run = 0;
+ 
+   // Allocate a trapframe page.
+   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
+@@ -442,21 +444,25 @@ scheduler(void)
+     intr_off();
+ 
+     int found = 0;
++    // Priority scheduler: pick the RUNNABLE process with the smallest priority
++    // number; ties go to the one that ran least recently (round robin).
++    struct proc *best = 0;
+     for (p = proc; p < &proc[NPROC]; p++) {
++      if (p->state != RUNNABLE) continue;          // unlocked peek; re-checked below
++      if (best == 0 || p->priority < best->priority ||
++          (p->priority == best->priority && p->last_run < best->last_run))
++        best = p;
++    }
++    if (best) {
++      p = best;
+       acquire(&p->lock);
+       if (p->state == RUNNABLE) {
+-        // Switch to chosen process.  It is the process's job
+-        // to release its lock and then reacquire it
+-        // before jumping back to us.
++        static uint64 sched_count = 0;
++        p->last_run = ++sched_count;               // racy across CPUs but only used as a tie-break
+         p->state = RUNNING;
+         c->proc = p;
+         swtch(&c->context, &p->context);
+-
+-        // Don't re-enable interrupts on release.
+         mycpu()->intena = 0;
+-
+-        // Process is done running for now.
+-        // It should have changed its p->state before coming back.
+         c->proc = 0;
+         found = 1;
+       }
+diff --git a/kernel/proc.h b/kernel/proc.h
+index 5603697..4df8b95 100644
+--- a/kernel/proc.h
++++ b/kernel/proc.h
+@@ -86,6 +86,8 @@ struct proc {
+   enum procstate state; // Process state
+   void *chan;           // If non-zero, sleeping on chan
+   int killed;           // If non-zero, have been killed
++  int priority;         // scheduling priority: 0 (highest) .. 20 (lowest), default 10
++  uint64 last_run;      // scheduler tick when last chosen (round-robin tie-break)
+   int xstate;           // Exit status to be returned to parent's wait
+   int pid;              // Process ID
+ 
+diff --git a/kernel/syscall.c b/kernel/syscall.c
+index 1800f20..f7f6f60 100644
+--- a/kernel/syscall.c
++++ b/kernel/syscall.c
+@@ -95,6 +95,7 @@ extern uint64 sys_getpid(void);
+ extern uint64 sys_sbrk(void);
+ extern uint64 sys_pause(void);
+ extern uint64 sys_uptime(void);
++extern uint64 sys_setpriority(void);
+ extern uint64 sys_open(void);
+ extern uint64 sys_write(void);
+ extern uint64 sys_mknod(void);
+@@ -122,6 +123,7 @@ static uint64 (*syscalls[])(void) = {
+   [SYS_sbrk]    = sys_sbrk,
+   [SYS_pause]   = sys_pause,
+   [SYS_uptime]  = sys_uptime,
++  [SYS_setpriority] = sys_setpriority,
+   [SYS_open]    = sys_open,
+   [SYS_write]   = sys_write,
+   [SYS_mknod]   = sys_mknod,
+diff --git a/kernel/syscall.h b/kernel/syscall.h
+index 5a4a39f..6452472 100644
+--- a/kernel/syscall.h
++++ b/kernel/syscall.h
+@@ -21,3 +21,4 @@
+ #define SYS_mkdir  20
+ #define SYS_close  21
+ #define SYS_sync   22
++#define SYS_setpriority 23
+diff --git a/kernel/sysproc.c b/kernel/sysproc.c
+index cd25557..afbab41 100644
+--- a/kernel/sysproc.c
++++ b/kernel/sysproc.c
+@@ -110,3 +110,19 @@ sys_uptime(void)
+   release(&tickslock);
+   return xticks;
+ }
++
++// setpriority(pid, prio): set priority (0 highest .. 20 lowest) of process pid. Returns 0 or -1.
++uint64
++sys_setpriority(void)
++{
++  int pid, prio;
++  argint(0, &pid);
++  argint(1, &prio);
++  if (prio < 0 || prio > 20) return -1;
++  for (struct proc *p = proc; p < &proc[NPROC]; p++) {
++    acquire(&p->lock);
++    if (p->pid == pid && p->state != UNUSED) { p->priority = prio; release(&p->lock); return 0; }
++    release(&p->lock);
++  }
++  return -1;
++}
+diff --git a/user/schedbench.c b/user/schedbench.c
+new file mode 100644
+index 0000000..0f5b6ed
+--- /dev/null
++++ b/user/schedbench.c
+@@ -0,0 +1,23 @@
++// schedbench: 3 workloads to compare the scheduler before/after the patch.
++// usage: schedbench 1|2|3     (prints turnaround ticks per child)
++#include "kernel/types.h"
++#include "user/user.h"
++
++static void spin(int n) { volatile int x = 0; for (int i = 0; i < n; i++) for (int j = 0; j < 1000; j++) x += j; }
++
++static void child(int prio, int work, int sleepy, int start) {
++  setpriority(getpid(), prio);
++  for (int r = 0; r < (sleepy ? 10 : 1); r++) { spin(work/(sleepy ? 10 : 1)); if (sleepy) pause(1); }
++  printf("pid %d prio %d turnaround %d ticks\n", getpid(), prio, uptime() - start);
++  exit(0);
++}
++
++int main(int argc, char *argv[]) {
++  int w = argc > 1 ? atoi(argv[1]) : 1, start = uptime(), n = 0;
++  if (w == 1)      { for (int i = 0; i < 4; i++) { if (fork() == 0) child(i < 2 ? 2 : 18, 2000, 0, start); n++; } }  // CPU-bound, mixed priority
++  else if (w == 2) { for (int i = 0; i < 12; i++) { if (fork() == 0) child(10, 200, 0, start); n++; } }               // many short jobs
++  else             { for (int i = 0; i < 4; i++) { if (fork() == 0) child(i < 2 ? 5 : 15, 1500, i % 2, start); n++; } } // CPU + sleepy mix
++  for (int i = 0; i < n; i++) wait(0);
++  printf("workload %d total %d ticks\n", w, uptime() - start);
++  exit(0);
++}
+diff --git a/user/user.h b/user/user.h
+index 29aad59..d92f41e 100644
+--- a/user/user.h
++++ b/user/user.h
+@@ -24,6 +24,7 @@ int getpid(void);
+ char *sys_sbrk(int, int);
+ int pause(int);
+ int uptime(void);
++int setpriority(int, int);
+ int sync(void);
+ 
+ // ulib.c
+diff --git a/user/usys.pl b/user/usys.pl
+index 4d054e8..cf428f2 100755
+--- a/user/usys.pl
++++ b/user/usys.pl
+@@ -42,4 +42,5 @@ entry("getpid");
+ entry("sbrk");
+ entry("pause");
+ entry("uptime");
++entry("setpriority");
+ entry("sync");

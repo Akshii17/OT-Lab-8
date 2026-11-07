@@ -1,0 +1,34 @@
+== D1. Greedy on a submodular objective (coverage) ==
+diminishing-returns violations in 2000 random tests: 0 (0 => submodular, so the 1-1/e guarantee applies)
+greedy covers 39, optimum 39, ratio 1.000 >= 1-1/e = 0.632
+
+== D2. Parallel speedup (machine has 1 CPU core(s)) ==
+CPU-bound, serial: 0.283s
+CPU-bound workers=1: 0.319s speedup=0.89 efficiency=0.89
+CPU-bound workers=2: 0.307s speedup=0.92 efficiency=0.46
+CPU-bound workers=4: 0.444s speedup=0.64 efficiency=0.16
+waiting-bound (sleep) workers=1: 1.218s speedup=0.99 efficiency=0.99
+waiting-bound (sleep) workers=2: 0.617s speedup=1.95 efficiency=0.97
+waiting-bound (sleep) workers=4: 0.326s speedup=3.68 efficiency=0.92
+waiting-bound (sleep) workers=8: 0.181s speedup=6.62 efficiency=0.83
+(CPU-bound speedup is limited by the number of physical cores; waiting-bound tasks overlap even on one core.)
+
+Load balancing: uneven tasks, static chunks vs dynamic (work-stealing-like) scheduling, 4 workers
+static chunks of 10: 0.309s   dynamic (chunk=1): 0.217s   ideal makespan ~0.200s
+
+Pipeline parallelism (2 stages = 2 'layers' on separate processes, which is also the simplest model-parallel split): sequential 0.80s vs pipeline 0.43s, speedup 1.87 (ideal 2.0)
+Amdahl: with serial fraction f the speedup on P workers is 1/(f+(1-f)/P); f=0.1 -> P=4: 3.08, P=inf: 10
+
+== D3. FedAvg vs centralized (logistic regression, 5 clients, non-IID) ==
+centralized GD (200 steps): loss=0.2406
+FedAvg local_steps= 1 rounds= 5: loss=0.6004  (communication = 5 rounds)
+FedAvg local_steps= 1 rounds=20: loss=0.4677  (communication = 20 rounds)
+FedAvg local_steps= 5 rounds= 5: loss=0.4431  (communication = 5 rounds)
+FedAvg local_steps= 5 rounds=20: loss=0.2929  (communication = 20 rounds)
+FedAvg local_steps=20 rounds= 5: loss=0.2939  (communication = 5 rounds)
+FedAvg local_steps=20 rounds=20: loss=0.2055  (communication = 20 rounds)
+
+== D4. Two-task shared-parameter model: equal weights vs MGDA vs GradNorm ==
+equal     L1=7.6676 L2=0.0767 sum=7.7443
+MGDA      L1=1.0366 L2=415.3545 sum=416.3911
+GradNorm  L1=6.4928 L2=6.1821 sum=12.6749

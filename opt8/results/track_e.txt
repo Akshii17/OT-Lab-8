@@ -1,0 +1,10 @@
+== E1. Small instance (12 stops): exact optimum vs heuristics ==
+Held-Karp (exact DP): 341.33  (0.04s)
+nearest neighbour: 359.45   NN+2-opt: 344.24
+
+== E2. Main instance: 60 delivery stops in a 100x100 km area (distance in km) ==
+baseline (visit in given/random order, mean of 20): 3231.7 km
+nearest neighbour: 741.2 km  (0.3 ms)  improvement over baseline 77.1%
+NN + 2-opt:        662.0 km  (5.1 ms)  improvement over baseline 79.5%
+simulated annealing (5 seeds): mean 657.8 +- 17.9 km  (0.5 s per run)
+correctness check passed: every stop visited exactly once

@@ -1,0 +1,35 @@
+== H1. Synthetic dataset: orders table, 100000 rows (documented, seed 0) ==
+baseline workload time (weighted by frequency) = 545.1 ms, db size = 2832 KB
+baseline plans:
+    SCAN orders
+    SCAN orders
+    SCAN orders | USE TEMP B-TREE FOR GROUP BY
+    SCAN orders
+    SCAN orders
+
+== H2. Measure benefit and size of each candidate index ==
+cust               size=   1048 KB  time saved= 298.71 ms
+product_status     size=   1192 KB  time saved= -13.19 ms
+day                size=   1012 KB  time saved=-205.21 ms
+cust_day           size=   1312 KB  time saved= 259.76 ms
+region_status_day  size=   1344 KB  time saved=-619.73 ms
+status             size=    904 KB  time saved= -65.64 ms
+region             size=    932 KB  time saved=-424.09 ms
+product            size=   1036 KB  time saved= -49.84 ms
+
+storage budget = 1500 KB
+
+== H3. Greedy vs DP vs ILP vs default (no index) ==
+greedy (benefit/size)  chose ['cust']
+                       workload 249.27 ms (baseline 545.1 ms, speedup 2.2x), extra storage 1048 KB, results identical: True
+dynamic programming    chose ['cust']
+                       workload 254.58 ms (baseline 545.1 ms, speedup 2.1x), extra storage 1048 KB, results identical: True
+  plans with DP choice:
+      SEARCH orders USING INDEX ix_cust (cust=?)
+      SCAN orders
+      SCAN orders | USE TEMP B-TREE FOR GROUP BY
+      SEARCH orders USING INDEX ix_cust (cust=?)
+      SCAN orders
+ILP (milp)             chose ['cust']
+                       workload 399.79 ms (baseline 545.1 ms, speedup 1.4x), extra storage 1048 KB, results identical: True
+(Benefits are measured one index at a time and assumed additive; the combined measurement above checks that assumption.)

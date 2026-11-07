@@ -1,0 +1,8 @@
+== J1. Synthetic suite: 150 tests, 500 lines, total runtime 404 s ==
+Formulation: min sum(cost_t * x_t)  s.t. for every line l: sum(x_t for tests covering l) >= 1, x_t in {0,1}
+method                  tests  runtime(s)  coverage kept  solve time
+naive: run all            150       404.1            yes           -
+greedy                     87       178.9           True      0.004s
+ILP (exact)                72       163.0           True      1.694s
+Cost of minimisation: coverage of lines is preserved, but fault detection is NOT guaranteed (a dropped test may catch a bug that line coverage cannot see).
+Limitation: data is synthetic; for the 1000+ line codebase requirement, replace `cov` with real coverage data (e.g. from pytest --cov) of a project.

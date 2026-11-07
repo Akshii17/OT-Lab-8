@@ -1,0 +1,35 @@
+== I1. Deutsch-Jozsa (3 input qubits) ==
+constant               P(input=000) = 1.000 -> constant
+balanced (x0 xor x1)   P(input=000) = 0.000 -> balanced
+
+== I2. Bernstein-Vazirani, secret 1011 ==
+measured input register: 1011
+
+== I3. Grover search vs classical linear search (oracle queries) ==
+qubits       N  Grover queries  P(success)  classical avg  sim time
+     4      16               3      0.9613              8   0.0023s
+     6      64               6      0.9966             32   0.0003s
+     8     256              12      0.9999            128   0.0003s
+    10    1024              25      0.9995            512   0.0006s
+    12    4096              50      0.9999           2048   0.0014s
+    14   16384             100      1.0000           8192   0.0051s
+Query count shows the quadratic advantage (theoretical). Wall-clock on a classical simulator is NOT faster: the simulator pays 2^n work per query.
+
+== I4. QFT check and quantum phase estimation ==
+QFT circuit matches matrix: True
+QPE: true phase 0.15625, estimated 5/32 = 0.15625
+
+== I5. Shor's algorithm, N=15, a=7 (order finding with QPE, then classical post-processing) ==
+measurement 64/256 -> order r=4 -> factors 3 x 5
+
+== I6. Quantum annealing: not simulated physically. Simulated annealing (Track B4) is used as the classical stand-in.
+Limit: real annealers need the QUBO embedded on a sparse hardware graph; dense problems need chains of physical qubits.
+
+== I7. QML vs classical on moons data (2 qubits, simulator) ==
+model                        test acc  params  train time  circuit evals
+variational classifier (VQC)     0.55       8       1.23s           4800
+quantum kernel + SVM             0.75       -       0.53s    80*80 pairs
+logistic regression              0.78       3     0.0074s              0
+RBF SVM                          0.80       -      <0.01s              0
+Honest reading: on this small dataset the classical models are as good or better and far cheaper; the quantum models run on a classical simulator, so no quantum speedup is claimed.
+Hardware: no real quantum hardware was used; a noise model is in Track C (C2).
